@@ -2,9 +2,13 @@
 
 A very simple Rust-based x86_64 kernel that uses `kboot` for build/run automation and `ktest` for testing.
 
+kboot: https://github.com/philo-groves/kboot
+
+ktest: https://github.com/philo-groves/ktest
+
 ## Setup
 
-1. Clone this repository, and navigate into into its directory.
+1. Clone this repository, and navigate into its directory.
 2. Install the kboot runner: `cargo install kboot`
 3. Start your docker service locally (e.g. Docker Desktop)
 
@@ -26,14 +30,14 @@ cargo test
 
 ## Accessing the Kernel
 
-The containerized QEMU environment can be accessed through two primary interfaces:
+There are two primary interfaces:
 
 ### Web Interface
 
 The docker container exposes a VNC "remote" connection to VGA / framebuffer, similar to the native QEMU display window.
 
-VNC URL: http://localhost:8006
+In a browser: http://localhost:8006
 
 ### Command Line Interface
 
-The docker container for QEMU is executed in "interactive" mode, which make bi-directional communication with the kernel possible through the same terminal window as the `cargo run` command.
+The docker container for QEMU is executed in "interactive" mode, which makes bi-directional communication with the kernel possible through the same terminal window as the `cargo run` command.
