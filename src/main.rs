@@ -36,8 +36,10 @@ fn kernel_main(_boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
 #[cfg(test)]
 mod tests {
-    #[test_case]
-    fn main_assertion() {
+    use ktest::ktest;
+
+    #[ktest]
+    fn basic_main_assertion() {
         assert_eq!(1, 1);
     }
 }

@@ -96,13 +96,22 @@ bootloader_api::entry_point!(kernel_test_main, config = &BOOTLOADER_CONFIG);
 
 #[cfg(test)]
 mod tests {
-    #[test_case]
-    fn lib_assertion() {
+    use ktest::ktest;
+
+    #[ktest]
+    #[ignore]
+    fn when_ignore_then_do_not_test() {
         assert_eq!(1, 1);
     }
 
-    #[test_case]
-    fn lib_assertion_2() {
+    #[ktest]
+    #[should_panic]
+    fn when_should_panic_then_pass() -> () {
+        panic!("This panic should not cause a fail");
+    }
+
+    #[ktest]
+    fn when_should_not_pass_then_fail() -> () {
         panic!("Make sure tests fail correctly");
     }
 }
