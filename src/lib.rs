@@ -11,13 +11,6 @@
 #![cfg_attr(test, reexport_test_harness_main = "test_main")] // test setup: rename the test harness entry point
 
 use bootloader_api::config::Mapping;
-use x86_64::VirtAddr;
-use crate::memory::BootInfoFrameAllocator;
-
-extern crate alloc;
-
-mod allocator;
-mod memory;
 
 /// The start of the higher half memory mapping.
 pub const HIGHER_HALF_START: u64 = 0xffff_8000_0000_0000;
@@ -33,20 +26,6 @@ pub const BOOTLOADER_CONFIG: bootloader_api::BootloaderConfig = {
     config.mappings.dynamic_range_start = Some(HIGHER_HALF_START);
     config
 };
-
-/// Initialize the kernel. This function sets up the memory mapper and
-/// frame allocator, and initializes the heap allocator.
-pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
-    let physical_memory_offset = boot_info.physical_memory_offset.into_option()
-        .expect("BootInfo is missing physical_memory_offset");
-
-    let phys_mem_offset = VirtAddr::new(physical_memory_offset);
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_regions) };
-
-    allocator::init_heap(&mut mapper, &mut frame_allocator)
-        .expect("heap initialization failed");
-}
 
 /// A simple panic handler that prints the panic information to the serial
 /// port and exits QEMU with a failure code.
@@ -112,8 +91,8 @@ pub enum QemuExitCode {
 // The entry point for `cargo test`. This function is called by the bootloader
 // after the kernel is loaded. Only relevant to library tests.
 #[cfg(test)]
-fn kernel_test_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
-    init(boot_info);
+fn kernel_test_main(_boot_info: &'static mut bootloader_api::BootInfo) -> ! {
+    // any kernel init can happen here
 
     ktest::init_harness("library");
     test_main();
