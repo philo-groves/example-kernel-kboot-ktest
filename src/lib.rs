@@ -10,20 +10,10 @@
 #![cfg_attr(test, test_runner(ktest::runner))]               // test setup: use the custom test runner only in test mode
 #![cfg_attr(test, reexport_test_harness_main = "test_main")] // test setup: rename the test harness entry point
 
-use bootloader_api::config::Mapping;
-
-/// The start of the higher half memory mapping.
-pub const HIGHER_HALF_START: u64 = 0xffff_8000_0000_0000;
-
-// The physical memory is mapped to this address
-pub const PHYSICAL_MEMORY_OFFSET: u64 = 0x0000_4000_0000_0000;
-
 /// Bootloader configuration that maps the kernel to the higher half of the
 /// address space.
 pub const BOOTLOADER_CONFIG: bootloader_api::BootloaderConfig = {
-    let mut config = bootloader_api::BootloaderConfig::new_default();
-    config.mappings.physical_memory = Some(Mapping::FixedAddress(PHYSICAL_MEMORY_OFFSET));
-    config.mappings.dynamic_range_start = Some(HIGHER_HALF_START);
+    let config = bootloader_api::BootloaderConfig::new_default();
     config
 };
 
