@@ -4,11 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ktest = "0.1.2"                  # for kernel testing framework
 linked_list_allocator = "0.10.5" # for heap allocation
 bootloader_api = "0.11.12"       # for bootloader support and its structures
 uart_16550 = "0.4.0"             # for serial port communication
 x86_64 = "0.15.2"                # for x86_64 architecture specific functions and structures
+
+[dev-dependencies]
+ktest = "0.1.2"                  # for kernel testing framework
 
 [lib]
 doctest = false # disable doctests and their log outputs (we have no doctests)
