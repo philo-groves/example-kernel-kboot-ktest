@@ -110,8 +110,12 @@ mod tests {
         panic!("This panic should not cause a fail");
     }
 
-    #[ktest]
-    fn when_should_not_pass_then_fail() -> () {
-        panic!("Make sure tests fail correctly");
-    }
+    // uncomment to verify that failing tests are reported correctly
+    //
+    // Note: Do not push this change, as it will cause CI to fail!
+    //
+    // #[ktest] 
+    // fn when_should_not_pass_then_fail() -> () {
+    //     panic!("Make sure tests fail correctly");
+    // }
 }
