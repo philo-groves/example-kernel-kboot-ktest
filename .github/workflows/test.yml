@@ -109,16 +109,20 @@ jobs:
             echo "- Tests completed but didn't generate JSON output" >> $GITHUB_STEP_SUMMARY
           fi
       
-      - name: Upload test results
+      - name: Find test results directory
         if: always()
+        id: find-results
+        run: |
+          latest_dir=$(find .build -maxdepth 1 -type d -name "testing-*" | sort -r | head -n 1)
+          echo "results_dir=$latest_dir" >> $GITHUB_OUTPUT
+          echo "Found results directory: $latest_dir"
+      
+      - name: Upload test results
+        if: always() && steps.find-results.outputs.results_dir != ''
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: |
-            .build/testing-*/*.json
-            target/.build/testing-*/*.json
-            testing-*/*.json
-            .ktest/testing-*/*.json
+          path: ${{ steps.find-results.outputs.results_dir }}
           if-no-files-found: warn
       
       - name: Check for test failures
