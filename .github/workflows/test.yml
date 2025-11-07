@@ -128,36 +128,28 @@ jobs:
       - name: Check for test failures
         if: always()
         run: |
-          # Try multiple possible locations
-          possible_dirs=(
-            ".build/testing-*"
-            "target/.build/testing-*"
-            "testing-*"
-            ".ktest/testing-*"
-          )
+          # Use the results directory we found earlier
+          results_dir="${{ steps.find-results.outputs.results_dir }}"
           
-          latest_dir=""
-          for pattern in "${possible_dirs[@]}"; do
-            found_dir=$(find . -path "*/$pattern" -o -path "./$pattern" 2>/dev/null | sort -r | head -n 1)
-            if [ -n "$found_dir" ] && [ -d "$found_dir" ]; then
-              latest_dir="$found_dir"
-              break
-            fi
-          done
-          
-          if [ -n "$latest_dir" ] && [ -d "$latest_dir" ]; then
+          if [ -n "$results_dir" ] && [ -d "$results_dir" ]; then
+            echo "Checking test results in: $results_dir"
+            
             # Check if jq is available
             if ! command -v jq &> /dev/null; then
               sudo apt-get update && sudo apt-get install -y jq
             fi
             
             failed=0
-            for result_file in "$latest_dir"/*.json; do
+            for result_file in "$results_dir"/*.json; do
               if [ -f "$result_file" ]; then
+                echo "Processing: $(basename $result_file)"
                 failures=$(jq -r '.summary.failed // 0' "$result_file" 2>/dev/null || echo "0")
+                echo "  Failures in this file: $failures"
                 failed=$((failed + failures))
               fi
             done
+            
+            echo "Total failures across all test files: $failed"
             
             if [ $failed -gt 0 ]; then
               echo "❌ $failed test(s) failed"
@@ -166,7 +158,8 @@ jobs:
               echo "✅ All tests passed"
             fi
           else
-            echo "⚠️ No test results found - assuming tests didn't run with ktest"
+            echo "⚠️ No test results found"
+            echo "This might mean tests didn't generate JSON output"
             # Don't fail if no JSON output - rely on cargo test exit code instead
-            echo "Checking cargo test exit code..."
+            echo "Relying on cargo test exit code..."
           fi
