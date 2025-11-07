@@ -21,7 +21,7 @@ jobs:
           components: rust-src, llvm-tools-preview
       
       - name: Install kboot
-        run: cargo install kboot
+        run: cargo install kboot --features ci
       
       - name: Run kernel tests
         run: cargo test
