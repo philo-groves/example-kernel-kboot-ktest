@@ -21,7 +21,7 @@ jobs:
           components: rust-src, llvm-tools-preview
       
       - name: Install kboot
-        run: cargo install kboot --features ci
+        run: cargo install kboot
       
       - name: Run kernel tests
         run: cargo test
@@ -31,40 +31,41 @@ jobs:
         run: |
           echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
           
-          if [ -d ".build/testing" ]; then
-            for result_file in .build/testing/*.json; do
+          # Find the latest testing directory
+          latest_dir=$(find .build -maxdepth 1 -type d -name "testing-*" | sort -r | head -n 1)
+          
+          if [ -n "$latest_dir" ] && [ -d "$latest_dir" ]; then
+            echo "Found test results in: $latest_dir" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            for result_file in "$latest_dir"/*.json; do
               if [ -f "$result_file" ]; then
                 echo "### $(basename $result_file)" >> $GITHUB_STEP_SUMMARY
                 
-                # Extract summary using jq if available, otherwise use basic parsing
-                if command -v jq &> /dev/null; then
-                  total=$(jq -r '.summary.total' "$result_file")
-                  passed=$(jq -r '.summary.passed' "$result_file")
-                  failed=$(jq -r '.summary.failed' "$result_file")
-                  ignored=$(jq -r '.summary.ignored' "$result_file")
-                  duration=$(jq -r '.summary.duration' "$result_file")
-                  
-                  echo "- **Total Tests:** $total" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Passed:** ✅ $passed" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Failed:** ❌ $failed" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Ignored:** ⏭️ $ignored" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Duration:** ${duration}ms" >> $GITHUB_STEP_SUMMARY
+                # Extract summary using jq
+                total=$(jq -r '.summary.total' "$result_file")
+                passed=$(jq -r '.summary.passed' "$result_file")
+                failed=$(jq -r '.summary.failed' "$result_file")
+                ignored=$(jq -r '.summary.ignored' "$result_file")
+                duration=$(jq -r '.summary.duration' "$result_file")
+                
+                echo "- **Total Tests:** $total" >> $GITHUB_STEP_SUMMARY
+                echo "- **Passed:** ✅ $passed" >> $GITHUB_STEP_SUMMARY
+                echo "- **Failed:** ❌ $failed" >> $GITHUB_STEP_SUMMARY
+                echo "- **Ignored:** ⏭️ $ignored" >> $GITHUB_STEP_SUMMARY
+                echo "- **Duration:** ${duration}ms" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                
+                # List failed tests if any
+                if [ "$failed" -gt 0 ]; then
+                  echo "#### Failed Tests:" >> $GITHUB_STEP_SUMMARY
+                  jq -r '.modules[].tests[] | select(.result == "fail") | "- **\(.test)**: \(.message // "No message") (\(.location // "unknown location"))"' "$result_file" >> $GITHUB_STEP_SUMMARY
                   echo "" >> $GITHUB_STEP_SUMMARY
-                  
-                  # List failed tests if any
-                  if [ "$failed" -gt 0 ]; then
-                    echo "#### Failed Tests:" >> $GITHUB_STEP_SUMMARY
-                    jq -r '.modules[].tests[] | select(.result == "fail") | "- **\(.test)**: \(.message // "No message") (\(.location // "unknown location"))"' "$result_file" >> $GITHUB_STEP_SUMMARY
-                    echo "" >> $GITHUB_STEP_SUMMARY
-                  fi
-                else
-                  # Fallback: just display the file exists
-                  echo "Test results available in: $result_file" >> $GITHUB_STEP_SUMMARY
                 fi
               fi
             done
           else
-            echo "⚠️ No test results found in .build/testing" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No test results found in .build/testing-*" >> $GITHUB_STEP_SUMMARY
           fi
       
       - name: Upload test results
@@ -72,20 +73,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: .build/testing/*.json
+          path: .build/testing-*/*.json
           if-no-files-found: warn
       
       - name: Check for test failures
         if: always()
         run: |
-          if [ -d ".build/testing" ]; then
+          # Find the latest testing directory
+          latest_dir=$(find .build -maxdepth 1 -type d -name "testing-*" | sort -r | head -n 1)
+          
+          if [ -n "$latest_dir" ] && [ -d "$latest_dir" ]; then
             failed=0
-            for result_file in .build/testing/*.json; do
+            for result_file in "$latest_dir"/*.json; do
               if [ -f "$result_file" ]; then
-                if command -v jq &> /dev/null; then
-                  failures=$(jq -r '.summary.failed' "$result_file")
-                  failed=$((failed + failures))
-                fi
+                failures=$(jq -r '.summary.failed' "$result_file")
+                failed=$((failed + failures))
               fi
             done
             
@@ -95,4 +97,7 @@ jobs:
             else
               echo "✅ All tests passed"
             fi
+          else
+            echo "⚠️ No test results found"
+            exit 1
           fi
